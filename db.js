@@ -70,6 +70,10 @@ export function getUser(userId) {
   return db.prepare("SELECT * FROM users WHERE userId = ?").get(userId);
 }
 
+export function getAllUsers() {
+  return db.prepare("SELECT * FROM users ORDER BY createdAt DESC").all();
+}
+
 export function setPendingStep(userId, step) {
   db.prepare("UPDATE users SET pendingStep = ? WHERE userId = ?").run(step, userId);
 }
@@ -116,3 +120,4 @@ export function getAllSubscribedUsersWithBirthdate() {
 }
 
 export default db;
+

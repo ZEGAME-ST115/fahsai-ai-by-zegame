@@ -15,6 +15,7 @@ import {
   saveNatalChart,
   setSubscribed,
   getAllSubscribedUsersWithBirthdate,
+  getAllUsers,
 } from "./db.js";
 import { computeZodiac, buildNatalChart, generateDailyHoroscope, generateHoroscopeByMode } from "./ai.js";
 import { geocodePlace } from "./geocode.js";
@@ -71,6 +72,90 @@ app.post("/webhook", webhookLimiter, middleware(lineConfig), async (req, res) =>
 
 app.get("/", (_req, res) => res.send("LINE horoscope bot is running"));
 
+// ═════════════════════════════════════════════════════════════════
+// 🆕 API: ดึงข้อมูลจากฐานข้อมูลทั้งหมด (สำหรับ DB Viewer)
+// ═════════════════════════════════════════════════════════════════
+app.get("/api/db", (_req, res) => {
+  try {
+    const users = getAllUsers();
+    return res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      tables: {
+        users: {
+          rowCount: users.length,
+          data: users.map(user => ({
+            userId: user.userId,
+            displayName: user.displayName,
+            birthdate: user.birthdate,
+            birthtime: user.birthtime,
+            birthplace: user.birthplace,
+            zodiac: user.zodiac,
+            subscribed: user.subscribed === 1,
+            createdAt: user.createdAt,
+          }))
+        }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// API: ดึงรายชื่อตารางทั้งหมด
+app.get("/api/db/tables", (_req, res) => {
+  try {
+    return res.json({
+      success: true,
+      tables: ["users"]
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// API: ดึงข้อมูลจากตารางเฉพาะ
+app.get("/api/db/table/:name", (req, res) => {
+  const tableName = req.params.name;
+  
+  try {
+    if (tableName !== "users") {
+      return res.status(404).json({
+        success: false,
+        error: "Table not found"
+      });
+    }
+    
+    const users = getAllUsers();
+    return res.json({
+      success: true,
+      tableName: "users",
+      rowCount: users.length,
+      data: users.map(user => ({
+        userId: user.userId,
+        displayName: user.displayName,
+        birthdate: user.birthdate,
+        birthtime: user.birthtime,
+        birthplace: user.birthplace,
+        zodiac: user.zodiac,
+        subscribed: user.subscribed === 1,
+        createdAt: user.createdAt,
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 async function handleEvent(event) {
   const userId = event.source?.userId;
   if (!userId) return;
@@ -116,7 +201,7 @@ async function handleEvent(event) {
     saveBirthdate(userId, birthdate, zodiac);
     return client.replyMessage(event.replyToken, {
       type: "text",
-      text: `บันทึกแล้วค่ะ ✨ คุณราศี${zodiac}\nถ้าทราบเวลาเกิดด้วย พิมพ์มาในรูปแบบ HH:MM (เช่น 14:30) จะช่วยให้ทำนายได้เจาะจงขึ้น หรือกด "${SKIP_BIRTHTIME_TEXT}" ก็ได้ค่ะ`,
+      text: `บันทึกแล้วค่ะ ✨ คุณราศี${zodiac}\nถ้าทราบเวลาเกิดด้วย พิมพ์มาในรูปแบบ HH:MM (เช่น 14:30) จะช่วยให้ทำนายได้เจาะจงขึ้น หรือกด "${SKIP_BIRTHTIME_TEXT}" ก็ได้นะค่ะ`,
       quickReply: { items: [{ type: "action", action: { type: "message", label: SKIP_BIRTHTIME_TEXT, text: SKIP_BIRTHTIME_TEXT } }] },
     });
   }
@@ -189,7 +274,7 @@ async function handleEvent(event) {
   // ข้อความอื่น ๆ ที่ไม่ตรงเมนู -> โชว์เมนูอีกครั้ง
   return client.replyMessage(event.replyToken, {
     type: "text",
-    text: "เลือกดูดวงแบบไหนดีคะ วันนี้พิมพ์อะไรก็ได้ หรือกดเลือกจากเมนูด้านล่าง 👇",
+    text: "เลือกดูดวงแบบไหนดีคะ วันนี้พิมพ์อะไรก็ได้ หรือกดเลือก***จากเมนูด้านล่าง 👇",
     quickReply: MODE_QUICK_REPLY,
   });
 }
@@ -223,3 +308,4 @@ cron.schedule(
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
+
