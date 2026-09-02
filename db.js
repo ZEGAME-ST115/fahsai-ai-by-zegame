@@ -3,7 +3,7 @@ import Database from "better-sqlite3";
 // ไฟล์ฐานข้อมูล SQLite เก็บอยู่ในเครื่อง/โฮสต์เดียวกับแอป (ไม่ต้องตั้งเซิร์ฟเวอร์ DB แยก)
 // หมายเหตุ: ถ้า deploy บน hosting ที่ filesystem เป็น ephemeral (เช่น Render free / Vercel serverless)
 // ข้อมูลจะหายเมื่อ redeploy — ให้ใช้ disk แบบ persistent (Render Disk, Railway Volume) หรือย้ายไป Postgres ภายหลัง
-const db = new Database("./data.sqlite");
+const db = new Database(process.env.DB_PATH || "./data.sqlite");
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
