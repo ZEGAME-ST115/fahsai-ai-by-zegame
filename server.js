@@ -32,6 +32,7 @@ const MODE_QUICK_REPLY = {
     { type: "action", action: { type: "message", label: "ดวงวันนี้", text: "ดวงวันนี้" } },
     { type: "action", action: { type: "message", label: "ดวงความรัก", text: "ดวงความรัก" } },
     { type: "action", action: { type: "message", label: "ดวงการเงิน", text: "ดวงการเงิน" } },
+	{ type: "action", action: { type: "message", label: "ดวงสุขภาพ", text: "ดวงสุขภาพ" } },
     { type: "action", action: { type: "message", label: "ไพ่ทาโรต์", text: "ไพ่ทาโรต์" } },
     { type: "action", action: { type: "message", label: "เลขศาสตร์", text: "เลขศาสตร์" } },
   ],
@@ -41,6 +42,7 @@ const TEXT_TO_MODE = {
   "ดวงวันนี้": "overview",
   "ดวงความรัก": "love",
   "ดวงการเงิน": "money",
+  "ดวงสุขภาพ": "health",
   "ไพ่ทาโรต์": "tarot",
   "เลขศาสตร์": "numerology",
 };
@@ -116,7 +118,7 @@ async function handleEvent(event) {
     saveBirthdate(userId, birthdate, zodiac);
     return client.replyMessage(event.replyToken, {
       type: "text",
-      text: `บันทึกแล้วค่ะ ✨ คุณราศี${zodiac}\nถ้าทราบเวลาเกิดด้วย พิมพ์มาในรูปแบบ HH:MM (เช่น 14:30) จะช่วยให้ทำนายได้เจาะจงขึ้น หรือกด "${SKIP_BIRTHTIME_TEXT}" ก็ได้ค่ะ`,
+      text: `บันทึกแล้วค่ะ ✨ คุณราศี${zodiac}\nถ้าทราบเวลาเกิดด้วย พิมพ์มาในรูปแบบ HH:MM (เช่น 14:30) จะช่วยให้ทำนายได้เจาะจงขึ้น หรือหากไม่สะดวกแจ้งข้อมูลกด "${SKIP_BIRTHTIME_TEXT}" ก็ได้ค่ะ`,
       quickReply: { items: [{ type: "action", action: { type: "message", label: SKIP_BIRTHTIME_TEXT, text: SKIP_BIRTHTIME_TEXT } }] },
     });
   }
@@ -130,7 +132,7 @@ async function handleEvent(event) {
       if (!match) {
         return client.replyMessage(event.replyToken, {
           type: "text",
-          text: `รบกวนพิมพ์เวลาเกิดในรูปแบบ HH:MM นะคะ เช่น 14:30 หรือกด "${SKIP_BIRTHTIME_TEXT}"`,
+          text: `รบกวนพิมพ์เวลาเกิดในรูปแบบ HH:MM นะคะ เช่น 14:30 หรือหากไม่สะดวกแจ้งข้อมูลกด "${SKIP_BIRTHTIME_TEXT}"`,
           quickReply: { items: [{ type: "action", action: { type: "message", label: SKIP_BIRTHTIME_TEXT, text: SKIP_BIRTHTIME_TEXT } }] },
         });
       }
@@ -138,7 +140,7 @@ async function handleEvent(event) {
     }
     return client.replyMessage(event.replyToken, {
       type: "text",
-      text: `ทราบสถานที่เกิดไหมคะ (เช่น กรุงเทพมหานคร, เชียงใหม่) ช่วยให้คำนวณตำแหน่งดาวแม่นยำขึ้น หรือกด "${SKIP_BIRTHPLACE_TEXT}" ก็ได้ค่ะ`,
+      text: `ทราบสถานที่เกิดไหมคะ (เช่น กรุงเทพมหานคร, เชียงใหม่) ช่วยให้คำนวณตำแหน่งดาวแม่นยำขึ้น หรือหากไม่สะดวกแจ้งข้อมูลกด "${SKIP_BIRTHPLACE_TEXT}" ก็ได้ค่ะ`,
       quickReply: { items: [{ type: "action", action: { type: "message", label: SKIP_BIRTHPLACE_TEXT, text: SKIP_BIRTHPLACE_TEXT } }] },
     });
   }
@@ -151,7 +153,7 @@ async function handleEvent(event) {
       if (!geo) {
         return client.replyMessage(event.replyToken, {
           type: "text",
-          text: `หาสถานที่ "${text}" ไม่เจอค่ะ ลองพิมพ์ชื่อจังหวัด/เมืองอีกครั้ง หรือกด "${SKIP_BIRTHPLACE_TEXT}"`,
+          text: `หาสถานที่ "${text}" ไม่เจอค่ะ ลองพิมพ์ชื่อจังหวัด/เมืองอีกครั้ง หรือหากไม่สะดวกแจ้งข้อมูลกด "${SKIP_BIRTHPLACE_TEXT}"`,
           quickReply: { items: [{ type: "action", action: { type: "message", label: SKIP_BIRTHPLACE_TEXT, text: SKIP_BIRTHPLACE_TEXT } }] },
         });
       }
@@ -170,7 +172,7 @@ async function handleEvent(event) {
 
     return client.replyMessage(event.replyToken, {
       type: "text",
-      text: "คำนวณตำแหน่งดาวเรียบร้อยค่ะ 🔮✨ ทุกเช้าจะมีดวงประจำวันจากข้อมูลจริงส่งมาให้อัตโนมัติ หรือจะเลือกดูโหมดอื่นได้จากเมนูด้านล่างเลยค่ะ",
+      text: "คำนวณตำแหน่งดาวเรียบร้อยค่ะ 🔮✨ ทุกเช้าจะมีดวงประจำวันจากข้อมูลจริงส่งมาให้อัตโนมัติ หรือจะเลือกดูโหมดอื่นได้จากเมนูด้านล่างเลยค่ะ \nสามารถปิดการแจ้งเตือนแล้วเข้ามาอ่านในภายหลังได้นะคะ",
       quickReply: MODE_QUICK_REPLY,
     });
   }
@@ -189,13 +191,13 @@ async function handleEvent(event) {
   // ข้อความอื่น ๆ ที่ไม่ตรงเมนู -> โชว์เมนูอีกครั้ง
   return client.replyMessage(event.replyToken, {
     type: "text",
-    text: "เลือกดูดวงแบบไหนดีคะ วันนี้พิมพ์อะไรก็ได้ หรือกดเลือกจากเมนูด้านล่าง 👇",
+    text: "เลือกดูดวงแบบไหนดีคะ พิมพ์ข้อความ หรือกดเลือกจากเมนูด้านล่างก็ได้ค่ะ 👇",
     quickReply: MODE_QUICK_REPLY,
   });
 }
 
 // ── ส่งดวงประจำวันทุกเช้าอัตโนมัติ ──────────────────────────────
-const hour = Number(process.env.DAILY_PUSH_HOUR ?? 7);
+const hour = Number(process.env.DAILY_PUSH_HOUR ?? 6);
 const minute = Number(process.env.DAILY_PUSH_MINUTE ?? 0);
 // cron format: นาที ชั่วโมง วันที่ เดือน วันในสัปดาห์
 const pushDelayMs = Number(process.env.DAILY_PUSH_DELAY_MS ?? 5000);
