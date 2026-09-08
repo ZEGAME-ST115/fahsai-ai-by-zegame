@@ -5,11 +5,18 @@ const { Pool } = pg;
 // Northflank (และ hosting Postgres ส่วนใหญ่) ให้ connection string ผ่าน env ตัวเดียว
 // รูปแบบ: postgres://user:password@host:port/dbname
 // SSL: บาง provider (Northflank รวมถึง) ต้องเปิด SSL แต่ certificate เป็น self-signed เลยต้องปิดการ verify
+// Northflank สร้าง secret ชื่อ POSTGRES_URI ให้อัตโนมัติจาก addon (ไม่ใช่ DATABASE_URL)
+// รองรับทั้งสองชื่อ เผื่อบาง provider อื่นใช้ DATABASE_URL แทน จะได้ไม่ต้องแก้โค้ดถ้าเปลี่ยน host ในอนาคต
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URI;
+if (!connectionString) {
+  throw new Error(
+    "ไม่พบ DATABASE_URL หรือ POSTGRES_URI ใน environment variables — ต้อง link secret จาก Postgres addon เข้า service ก่อน"
+  );
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes("localhost")
-    ? false
-    : { rejectUnauthorized: false },
+  connectionString,
+  ssl: connectionString.includes("localhost") ? false : { rejectUnauthorized: false },
 });
 
 async function init() {

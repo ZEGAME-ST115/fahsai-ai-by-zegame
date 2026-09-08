@@ -143,7 +143,7 @@ ${formatAspects(aspects)}`;
  */
 export async function generateDailyHoroscope(user) {
   const dateKey = todayKeyBangkok();
-  const cached = getCachedReading(user.userId, "daily_push", dateKey);
+  const cached = await getCachedReading(user.userId, "daily_push", dateKey);
   if (cached) return cached;
 
   const today = new Date().toLocaleDateString("th-TH", {
@@ -185,7 +185,7 @@ export async function generateHoroscopeByMode(user, mode) {
   const dateKey = todayKeyBangkok();
 
   if (CACHEABLE_MODES.has(mode)) {
-    const cached = getCachedReading(user.userId, mode, dateKey);
+    const cached = await getCachedReading(user.userId, mode, dateKey);
     if (cached) return cached;
   }
 
@@ -193,7 +193,7 @@ export async function generateHoroscopeByMode(user, mode) {
   const reading = await callAI(SYSTEM_PROMPT, buildPrompt(user));
 
   if (CACHEABLE_MODES.has(mode)) {
-    saveCachedReading(user.userId, mode, dateKey, reading);
+    await saveCachedReading(user.userId, mode, dateKey, reading);
   }
 
   return reading;
