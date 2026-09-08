@@ -7,12 +7,17 @@ const { Pool } = pg;
 // SSL: บาง provider (Northflank รวมถึง) ต้องเปิด SSL แต่ certificate เป็น self-signed เลยต้องปิดการ verify
 // Northflank สร้าง secret ชื่อ POSTGRES_URI ให้อัตโนมัติจาก addon (ไม่ใช่ DATABASE_URL)
 // รองรับทั้งสองชื่อ เผื่อบาง provider อื่นใช้ DATABASE_URL แทน จะได้ไม่ต้องแก้โค้ดถ้าเปลี่ยน host ในอนาคต
-const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URI;
+let connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URI;
 if (!connectionString) {
   throw new Error(
     "ไม่พบ DATABASE_URL หรือ POSTGRES_URI ใน environment variables — ต้อง link secret จาก Postgres addon เข้า service ก่อน"
   );
 }
+
+// ตัด ?sslmode=... ออกจาก connection string เพื่อไม่ให้ pg ตีความ SSL mode ซ้ำซ้อนกับ object ที่ตั้งไว้ด้านล่าง
+// (การมีทั้งสองแหล่งพร้อมกันคือสาเหตุของ deprecation warning "SSL modes ... treated as aliases for verify-full")
+// เราตั้ง ssl แบบ explicit ผ่าน object แทน ชัดเจนกว่าและไม่ผูกกับพฤติกรรมที่จะเปลี่ยนใน pg v9
+connectionString = connectionString.replace(/([?&])sslmode=[^&]*&?/i, "$1").replace(/[?&]$/, "");
 
 const pool = new Pool({
   connectionString,
