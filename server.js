@@ -26,6 +26,10 @@ const lineConfig = {
 const client = new Client(lineConfig);
 const app = express();
 
+// Northflank (และ hosting แบบ reverse-proxy ส่วนใหญ่) ส่ง X-Forwarded-For มาทุก request
+// ต้องบอก Express ให้เชื่อ header นี้ ไม่งั้น express-rate-limit จะ throw error แทนที่จะ rate-limit
+app.set("trust proxy", 1);
+
 // เมนูให้เลือกโหมดดูดวง แสดงเป็นปุ่มลัดใต้ข้อความตอบกลับ
 const MODE_QUICK_REPLY = {
   items: [
@@ -79,7 +83,7 @@ async function handleEvent(event) {
 
   if (event.type === "follow") {
     const profile = await client.getProfile(userId).catch(() => null);
-    upsertUserBasic(userId, profile?.displayName);
+    await upsertUserBasic(userId, profile?.displayName);
     return client.replyMessage(event.replyToken, {
       type: "text",
       text: `สวัสดีค่ะ ${profile?.displayName || ""} 🔮\nก่อนเริ่มดูดวง รบกวนพิมพ์วันเกิดของคุณในรูปแบบ YYYY-MM-DD เช่น 1998-05-20`,
@@ -87,22 +91,22 @@ async function handleEvent(event) {
   }
 
   if (event.type === "unfollow") {
-    setSubscribed(userId, false);
+    await setSubscribed(userId, false);
     return;
   }
 
   if (event.type !== "message" || event.message.type !== "text") return;
 
   const text = event.message.text.trim();
-  const user = getUser(userId);
+  const user = await getUser(userId);
 
   // ยังไม่เคยมีในระบบ (เช่น ข้อความแรกก่อน follow event มาถึง) -> สร้าง record ก่อน
   if (!user) {
-    upsertUserBasic(userId, null);
+    await upsertUserBasic(userId, null);
   }
 
-  const current = getUser(userId);
-
+  const current = await getUser(userId);
+  
   // ขั้นตอนถามวันเกิดครั้งแรก
   if (current.pendingStep === "ask_birthdate" || (!current.birthdate && current.pendingStep !== "ask_birthtime")) {
     const match = text.match(DATE_RE);
@@ -115,7 +119,7 @@ async function handleEvent(event) {
     const [, y, m, d] = match;
     const birthdate = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
     const zodiac = computeZodiac(birthdate);
-    saveBirthdate(userId, birthdate, zodiac);
+    await saveBirthdate(userId, birthdate, zodiac);
     return client.replyMessage(event.replyToken, {
       type: "text",
       text: `บันทึกแล้วค่ะ ✨ คุณราศี${zodiac}\nถ้าทราบเวลาเกิดด้วย พิมพ์มาในรูปแบบ HH:MM (เช่น 14:30) จะช่วยให้ทำนายได้เจาะจงขึ้น หรือหากไม่สะดวกแจ้งข้อมูลกด "${SKIP_BIRTHTIME_TEXT}" ก็ได้ค่ะ`,
@@ -126,7 +130,7 @@ async function handleEvent(event) {
   // ขั้นตอนถามเวลาเกิด (optional)
   if (current.pendingStep === "ask_birthtime") {
     if (text === SKIP_BIRTHTIME_TEXT) {
-      skipBirthtime(userId);
+      await skipBirthtime(userId);
     } else {
       const match = text.match(TIME_RE);
       if (!match) {
@@ -136,7 +140,7 @@ async function handleEvent(event) {
           quickReply: { items: [{ type: "action", action: { type: "message", label: SKIP_BIRTHTIME_TEXT, text: SKIP_BIRTHTIME_TEXT } }] },
         });
       }
-      saveBirthtime(userId, `${match[1].padStart(2, "0")}:${match[2]}`);
+      await saveBirthtime(userId, `${match[1].padStart(2, "0")}:${match[2]}`);
     }
     return client.replyMessage(event.replyToken, {
       type: "text",
@@ -160,15 +164,15 @@ async function handleEvent(event) {
       lat = geo.latitude;
       lon = geo.longitude;
       placeLabel = `${geo.name}, ${geo.country}`;
-      saveBirthplace(userId, placeLabel, lat, lon);
+      await saveBirthplace(userId, placeLabel, lat, lon);
     } else {
-      skipBirthplace(userId);
+      await skipBirthplace(userId);
     }
 
     // คำนวณ natal chart จริงจากข้อมูลที่มี (วันเกิดจำเป็นต้องมีแล้วตอนนี้)
-    const updated = getUser(userId);
+    const updated = await getUser(userId);
     const natalChartJson = buildNatalChart(updated.birthdate, updated.birthtime);
-    saveNatalChart(userId, natalChartJson);
+    await saveNatalChart(userId, natalChartJson);
 
     return client.replyMessage(event.replyToken, {
       type: "text",
@@ -206,7 +210,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 cron.schedule(
   `${minute} ${hour} * * *`,
   async () => {
-    const users = getAllSubscribedUsersWithBirthdate();
+    const users = await getAllSubscribedUsersWithBirthdate();
     console.log(`[daily-push] ส่งดวงประจำวันให้ ${users.length} คน`);
     for (const user of users) {
       try {
